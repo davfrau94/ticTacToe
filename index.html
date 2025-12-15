@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="it">
 	<head>
 		<meta charset="UTF-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -8,20 +8,35 @@
 		<title>Tic Tac Toe</title>
 	</head>
 	<body>
-		<div class="board" id="board">
-			<div class="cell" data-cell></div>
-			<div class="cell" data-cell></div>
-			<div class="cell" data-cell></div>
-			<div class="cell" data-cell></div>
-			<div class="cell" data-cell></div>
-			<div class="cell" data-cell></div>
-			<div class="cell" data-cell></div>
-			<div class="cell" data-cell></div>
-			<div class="cell" data-cell></div>
-		</div>
-		<div class="winning-message" id="winningMessage">
-			<div data-winning-message-text></div>
-			<button id="restartButton">Restart</button>
+		<div class="container">
+			<h1>Tris</h1>
+
+			<div class="setup-screen active">
+				<div class="input-group">
+					<label for="player1">Nome Giocatore 1 (X)</label>
+					<input type="text" id="player1" placeholder="Inserisci nome..." />
+				</div>
+				<div class="input-group">
+					<label for="player2">Nome Giocatore 2 (O)</label>
+					<input type="text" id="player2" placeholder="Inserisci nome..." />
+				</div>
+				<button class="btn" id="start-btn">Inizia Partita</button>
+			</div>
+			<div class="game-screen">
+				<div class="player-info">
+					<div class="player active" id="player1-info">
+						<div class="player-name" id="player1-name"></div>
+						<div class="player-marker">X</div>
+					</div>
+					<div class="player" id="player2-info">
+						<div class="player-name" id="player2-name"></div>
+						<div class="player-marker">O</div>
+					</div>
+				</div>
+				<div class="board" id="board"></div>
+				<div class="result" id="result"></div>
+				<button class="btn btn-restart" id="restart-btn">Nuova Partita</button>
+			</div>
 		</div>
 	</body>
 </html>

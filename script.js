@@ -1,89 +1,165 @@
-const X_CLASS = 'x'
-const CIRCLE_CLASS = 'circle'
-const WINNING_COMBINATIONS = [
-    [0, 1, 2],
-    [3, 4, 5],
-    [6, 7, 8],
-    [0, 3, 6],
-    [1, 4, 7],
-    [2, 5, 8],
-    [0, 4, 8],
-    [2, 4, 6]
-]
-const cellElements = document.querySelectorAll('[data-cell]')
-const board = document.getElementById('board')
-const winningMessageElement = document.getElementById('winningMessage')
-const restartButton = document.getElementById('restartButton')
-const winningMessageTextElement = document.querySelector('[data-winning-message-text]')
-let circleTurn
+const Gameboard = (() => {
+    let board = ["", "", "", "", "", "", "", "", ""];
+    const getBoard = () => board;
+    const setMark = (index, marker) => {
+        if (index >= 0 && index < 9 && board[index] === "") {
+            board[index] = marker;
+            return true;
+        }
+        return false;
+    };
+    const reset = () => {
+        board = ["", "", "", "", "", "", "", "", ""];
+    };
+    const isFull = () => board.every((cell) => cell !== "");
+    return { getBoard, setMark, reset, isFull };
+})();
 
-startGame()
+const Player = (name, marker) => {
+    return { name, marker };
+};
 
-restartButton.addEventListener('click', startGame)
+const GameController = (() => {
+    let players = [];
+    let currentPlayerIndex = 0;
+    let gameOver = false;
 
-function startGame() {
-    circleTurn = false
-    cellElements.forEach(cell => {
-        cell.classList.remove(X_CLASS)
-        cell.classList.remove(CIRCLE_CLASS)
-        cell.removeEventListener('click', handleClick)
-        cell.addEventListener('click', handleClick, { once: true })
-    })
-    setBoardHoverClass()
-    winningMessageElement.classList.remove('show')
-}
+    const winningCombos = [
+        [0, 1, 2], [3, 4, 5], [6, 7, 8], // righe
+        [0, 3, 6], [1, 4, 7], [2, 5, 8], // colonne
+        [0, 4, 8], [2, 4, 6], // diagonali
+    ];
+    const init = (player1Name, player2Name) => {
+        players = [Player(player1Name, "X"), Player(player2Name, "O")];
+        currentPlayerIndex = 0;
+        gameOver = false;
+        Gameboard.reset();
+    };
+    const getCurrentPlayer = () => players[currentPlayerIndex];
+    const switchPlayer = () => {
+        currentPlayerIndex = currentPlayerIndex === 0 ? 1 : 0;
+    };
 
-function handleClick(e) {
-    const cell = e.target
-    const currentClass = circleTurn ? CIRCLE_CLASS : X_CLASS
-    placeMark(cell, currentClass)
-    if (checkWin(currentClass)) {
-        endGame(false)
-    } else if (isDraw()) {
-        endGame(true)
-    } else {
-        swapTurns()
-        setBoardHoverClass()
-    }
-}
+    const checkWinner = () => {
+        const board = Gameboard.getBoard();
+        for (let combo of winningCombos) {
+            const [a, b, c] = combo;
+            if (board[a] && board[a] === board[b] && board[a] === board[c]) {
+                return board[a];
+            }
+        }
+        return null;
+    };
 
-function endGame(draw) {
-    if (draw) {
-        winningMessageTextElement.innerText = 'Draw!'
-    } else {
-        winningMessageTextElement.innerText = `${circleTurn ? "O's" : "X's"} Wins!`
-    }
-    winningMessageElement.classList.add('show')
-    }
+    const playRound = (index) => {
+        if (gameOver) return null;
+        const currentPlayer = getCurrentPlayer();
+        if (Gameboard.setMark(index, currentPlayer.marker)) {
+            const winner = checkWinner();
+            if (winner) {
+                gameOver = true;
+                return { type: "win", player: currentPlayer };
+            }
+            if (Gameboard.isFull()) {
+                gameOver = true;
+                return { type: "tie" };
+            }
+            switchPlayer();
+            return { type: "continue" };
+        }
+        return null;
+    };
 
-function isDraw() {
-    return [...cellElements].every(cell => {
-        return cell.classList.contains(X_CLASS) || cell.classList.contains(CIRCLE_CLASS)
-    })
-}
+    const isGameOver = () => gameOver;
 
-function placeMark(cell, currentClass) {
-    cell.classList.add(currentClass)
-}
+    return { init, getCurrentPlayer, playRound, isGameOver };
+})();
 
-function swapTurns() {
-    circleTurn = !circleTurn
-}
-
-function setBoardHoverClass() {
-    board.classList.remove(X_CLASS)
-    board.classList.remove(CIRCLE_CLASS)
-    if (circleTurn) {
-        board.classList.add(CIRCLE_CLASS)
-    } else {
-        board.classList.add(X_CLASS)
-    }
-}
-
-function checkWin(currentClass) {
-    return WINNING_COMBINATIONS.some(combination => {
-        return combination.every(index => {
-        return cellElements[index].classList.contains(currentClass)
-        })
-    })
-}
+const DisplayController = (() => {
+    const setupScreen = document.querySelector(".setup-screen");
+    const gameScreen = document.querySelector(".game-screen");
+    const boardElement = document.getElementById("board");
+    const resultElement = document.getElementById("result");
+    const startBtn = document.getElementById("start-btn");
+    const restartBtn = document.getElementById("restart-btn");
+    const player1Input = document.getElementById("player1");
+    const player2Input = document.getElementById("player2");
+    const player1NameDisplay = document.getElementById("player1-name");
+    const player2NameDisplay = document.getElementById("player2-name");
+    const player1Info = document.getElementById("player1-info");
+    const player2Info = document.getElementById("player2-info");
+    const renderBoard = () => {
+        boardElement.innerHTML = "";
+        const board = Gameboard.getBoard();
+        board.forEach((mark, index) => {
+            const cell = document.createElement("button");
+            cell.classList.add("cell");
+            cell.textContent = mark;
+            if (mark) {
+                cell.classList.add("taken");
+                cell.classList.add(mark.toLowerCase());
+            }
+            cell.addEventListener("click", () => handleCellClick(index));
+            boardElement.appendChild(cell);
+        });
+    };
+    const handleCellClick = (index) => {
+        if (GameController.isGameOver()) return;
+        const result = GameController.playRound(index);
+        if (result) {
+            renderBoard();
+            updateActivePlayer();
+            if (result.type === "win") {
+                showResult(`${result.player.name} ha vinto! 🎉`);
+            } else if (result.type === "tie") {
+                showResult("Pareggio! 🤝");
+            }
+        }
+    };
+    const showResult = (message) => {
+        resultElement.textContent = message;
+    };
+    const updateActivePlayer = () => {
+        if (GameController.isGameOver()) {
+            player1Info.classList.remove("active");
+            player2Info.classList.remove("active");
+            return;
+        }
+        const currentPlayer = GameController.getCurrentPlayer();
+        if (currentPlayer.marker === "X") {
+            player1Info.classList.add("active");
+            player2Info.classList.remove("active");
+        } else {
+            player1Info.classList.remove("active");
+            player2Info.classList.add("active");
+        }
+    };
+    const startGame = () => {
+        const p1Name = player1Input.value.trim() || "Giocatore 1";
+        const p2Name = player2Input.value.trim() || "Giocatore 2";
+        GameController.init(p1Name, p2Name);
+        player1NameDisplay.textContent = p1Name;
+        player2NameDisplay.textContent = p2Name;
+        setupScreen.classList.remove("active");
+        gameScreen.classList.add("active");
+        resultElement.textContent = "";
+        renderBoard();
+        updateActivePlayer();
+    };
+    const restartGame = () => {
+        setupScreen.classList.add("active");
+        gameScreen.classList.remove("active");
+    };
+    const init = () => {
+        startBtn.addEventListener("click", startGame);
+        restartBtn.addEventListener("click", restartGame);
+        player1Input.addEventListener("keypress", (e) => {
+            if (e.key === "Enter") startGame();
+        });
+        player2Input.addEventListener("keypress", (e) => {
+            if (e.key === "Enter") startGame();
+        });
+    };
+    return { init };
+})();
+DisplayController.init();
