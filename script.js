@@ -1,6 +1,6 @@
 const Gameboard = (() => {
     let board = ["", "", "", "", "", "", "", "", ""];
-    const getBoard = () => board;
+    const getBoard = () => [...board];
     const setMark = (index, marker) => {
         if (index >= 0 && index < 9 && board[index] === "") {
             board[index] = marker;
